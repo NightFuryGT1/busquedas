@@ -1,0 +1,25 @@
+body {
+    font-family: sans-serif;
+    text-align: center;
+    margin-top: 30px;
+}
+
+input, select, button {
+    margin: 5px;
+    padding: 5px;
+}
+
+circle.node {
+    fill: lightgray;
+    stroke: black;
+    stroke-width: 1.5px;
+}
+
+circle.visited {
+    fill: orange;
+}
+
+line.link {
+    stroke: #999;
+    stroke-width: 2px;
+}

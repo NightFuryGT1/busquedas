@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visualizador DFS/BFS</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+  <style>
+    body {
+      padding: 2rem;
+    }
+    #graph {
+      border: 1px solid #ddd;
+      margin-top: 2rem;
+    }
+    .visited {
+      fill: #ff8800;
+    }
+    #output {
+      margin-top: 2rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Visualizador Interactivo de Grafos</h1>
+
+    <form onsubmit="event.preventDefault(); execute();">
+      <label>Aristas del Grafo (Ej: A-B, A-C, B-D, C-D, D-E):
+        <input id="edges" name="edges" required>
+      </label>
+
+      <label>Nodo de Inicio:
+        <input id="start" name="start" required>
+      </label>
+
+      <label>Nodo Final (opcional):
+        <input id="end" name="end">
+      </label>
+
+      <label>Algoritmo:
+        <select id="algorithm" name="algorithm">
+          <option value="DFS">DFS (Profundidad)</option>
+          <option value="BFS">BFS (Amplitud)</option>
+        </select>
+      </label>
+
+      <div>
+        <button type="submit">Ejecutar</button>
+        <button type="button" onclick="clearGraph()">Eliminar</button>
+        <button type="button" onclick="reset()" class="secondary">Reiniciar</button>
+      </div>
+    </form>
+
+    <div id="output">Recorrido: <span id="pathDisplay"></span></div>
+
+    <svg id="graph" width="100%" height="500"></svg>
+  </main>
+
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    function parseEdges(input) {
+      return input.split(',').map(e => e.trim()).filter(e => e.includes('-'));
+    }
+
+    async function execute() {
+      const edges = parseEdges(document.getElementById("edges").value);
+      const start = document.getElementById("start").value.trim();
+      const end = document.getElementById("end").value.trim();
+      const algorithm = document.getElementById("algorithm").value;
+
+      const res = await fetch("/traverse", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ edges, start, end, algorithm })
+      });
+
+      const data = await res.json();
+      drawGraph(edges, data.path);
+      displayPath(data.path);
+    }
+
+    function displayPath(path) {
+      const display = document.getElementById("pathDisplay");
+      display.textContent = path.join(" → ");
+    }
+
+    function drawGraph(edges, path) {
+      d3.select("svg#graph").selectAll("*").remove();
+      const nodesSet = new Set();
+      const links = [];
+      edges.forEach(e => {
+        const [a, b] = e.split("-");
+        nodesSet.add(a);
+        nodesSet.add(b);
+        links.push({ source: a, target: b });
+      });
+      const nodes = Array.from(nodesSet).map(id => ({ id }));
+
+      const svg = d3.select("svg#graph");
+      const width = svg.node().getBoundingClientRect().width;
+      const height = +svg.attr("height");
+
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+        .force("charge", d3.forceManyBody().strength(-400))
+        .force("center", d3.forceCenter(width / 2, height / 2));
+
+      const link = svg.append("g")
+        .selectAll("line")
+        .data(links)
+        .join("line")
+        .attr("stroke", "#999").attr("stroke-width", 2);
+
+      const node = svg.append("g")
+        .selectAll("circle")
+        .data(nodes)
+        .join("circle")
+        .attr("r", 20)
+        .attr("fill", "#ccc")
+        .attr("stroke", "#333").attr("stroke-width", 2);
+
+      const label = svg.append("g")
+        .selectAll("text")
+        .data(nodes)
+        .join("text")
+        .text(d => d.id)
+        .attr("text-anchor", "middle")
+        .attr("dy", 5).style("font-weight", "bold");
+
+      simulation.on("tick", () => {
+        link.attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node.attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+
+        label.attr("x", d => d.x)
+             .attr("y", d => d.y);
+      });
+
+      animatePath(path, node);
+    }
+
+    function animatePath(path, nodeSelection) {
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i >= path.length) {
+          clearInterval(interval);
+          return;
+        }
+        nodeSelection.filter(d => d.id === path[i]).classed("visited", true);
+        i++;
+      }, 800);
+    }
+
+    function clearGraph() {
+      d3.select("svg#graph").selectAll("*").remove();
+      document.getElementById("pathDisplay").textContent = "";
+    }
+
+    function reset() {
+      document.getElementById("edges").value = "";
+      document.getElementById("start").value = "";
+      document.getElementById("end").value = "";
+      clearGraph();
+    }
+  </script>
+</body>
+</html>
