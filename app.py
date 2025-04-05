@@ -38,7 +38,6 @@ def dfs(graph, start, end=None):
 
     return path
 
-
 def bfs(graph, start, end=None):
     visited = set([start])
     queue = deque([[start]])
@@ -73,7 +72,9 @@ def traverse():
     data = request.get_json()
     edges = data['edges']
     start = data['start']
-    end = data.get('end') or None
+    
+    # Si el nodo final está vacío, lo dejamos como None
+    end = data.get('end') if data.get('end') != "" else None
     algorithm = data['algorithm']
 
     graph = build_graph(edges)
@@ -84,6 +85,7 @@ def traverse():
         path = bfs(graph, start, end)
 
     return jsonify({"path": path})
+
 
 if __name__ == '__main__':
     app.run(debug=True)

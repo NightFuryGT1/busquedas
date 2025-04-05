@@ -1,20 +1,23 @@
 function parseEdges(input) {
     return input.split(',').map(e => e.trim()).filter(e => e.includes('-'));
 }
-
 async function execute() {
     const edges = parseEdges(document.getElementById("edges").value);
     const start = document.getElementById("start").value.trim();
+    const end = document.getElementById("end").value.trim() || null;  // Si no hay valor, usar null
     const algorithm = document.getElementById("algorithm").value;
-
+  
     const res = await fetch("/traverse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ edges, start, algorithm })
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ edges, start, end, algorithm })
     });
+  
     const data = await res.json();
     drawGraph(edges, data.path);
-}
+    displayPath(data.path);
+  }
+  
 
 function drawGraph(edges, path) {
     d3.select("svg#graph").selectAll("*").remove();
